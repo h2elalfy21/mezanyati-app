@@ -1,1 +1,37 @@
 *{box-sizing:border-box}body{margin:0;background:#0a1020;color:#eef2ff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}button,input,select{font:inherit}button{cursor:pointer;border:0}input,select{background:#151e32;border:1px solid #34415a;color:#fff;border-radius:12px;padding:12px;width:100%}a{color:#7dd3fc}.wrap{max-width:1150px;margin:auto;padding:24px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand{font-size:26px;font-weight:800}.muted{color:#9daac2}.pill{background:#23334c;border-radius:999px;padding:8px 14px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:24px 0}.card{background:#141e32;border:1px solid #293750;border-radius:20px;padding:20px;box-shadow:0 8px 30px #0002}.card h3{margin:0 0 12px;font-size:15px;color:#aebbd2}.num{font-size:28px;font-weight:800}.green{color:#5ee0b0}.red{color:#ff8292}.blue{color:#7dd3fc}.btn{background:#4f8cff;color:#fff;padding:12px 18px;border-radius:12px;font-weight:700}.btn.secondary{background:#293750}.btn.danger{background:#713449}.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.form button{grid-column:1/-1}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #2b3850;padding:13px 0}.row:last-child{border:0}.auth{max-width:440px;margin:9vh auto;padding:24px}.auth input{margin:8px 0}.notice{padding:12px;border:1px solid #51607c;border-radius:12px;margin:12px 0;color:#d3ddec}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.tabs button{padding:10px 14px;background:#1b2940;color:#dce7ff;border-radius:10px}.tabs button.active{background:#4f8cff;color:white}@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}@media(max-width:480px){.wrap{padding:14px}.grid{gap:8px}.card{padding:14px}.num{font-size:21px}.form{grid-template-columns:1fr}}
+/* Mobile-first refinements */
+html{overflow-x:hidden}body{overflow-x:hidden;line-height:1.55}button{transition:background .15s}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}
+.wrap{width:100%;max-width:1100px;padding:clamp(14px,3vw,28px)}
+.top{min-width:0}.top>*{min-width:0}.top .pill{max-width:100%;overflow-wrap:anywhere}
+.wrap>header{padding:10px 0 16px;border-bottom:1px solid #27334a}
+.wrap>header>.top{gap:8px}.wrap>header .brand{font-size:clamp(23px,5vw,32px)}
+.wrap>header .pill{font-size:12px;max-width:240px}.wrap>header .btn{font-size:13px;padding:9px 13px}
+.wrap>.top:has(input[type=month]){align-items:end;gap:12px}.wrap>.top:has(input[type=month]) h2{margin:0;font-size:clamp(21px,5vw,29px)}
+.wrap>.top:has(input[type=month]) label{color:#9daac2;font-size:13px;min-width:0}
+input[type=month]{max-width:100%;min-width:0;direction:ltr;color-scheme:dark}
+.card{min-width:0;overflow-wrap:anywhere}.card h2{font-size:clamp(18px,4vw,23px);margin-top:0}
+.grid .card{min-height:122px}.num{overflow-wrap:anywhere;line-height:1.3}
+.row>div{min-width:0}.row>div:last-child{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.row .btn{padding:5px 11px}
+@media(max-width:600px){
+ .wrap{padding:14px 12px 30px}
+ .wrap>header{display:block}
+ .wrap>header>.top{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+ .wrap>header .pill{max-width:calc(100vw - 120px);font-size:11px;padding:8px 10px}
+ .wrap>.top:has(input[type=month]){display:grid;grid-template-columns:1fr;gap:8px;margin-top:18px!important}
+ .wrap>.top:has(input[type=month]) label{width:100%}
+ .wrap>.top:has(input[type=month]) input{width:100%;margin-top:5px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+ .grid .card{padding:14px 12px;min-height:112px}
+ .grid .card h3{font-size:12px;line-height:1.5;margin-bottom:10px}
+ .grid .num{font-size:clamp(18px,5vw,25px)}
+ .card{padding:16px;border-radius:17px}
+ .card>.top{display:flex;align-items:flex-start;flex-direction:column;gap:8px}
+ .card>.top span{font-size:12px;line-height:1.8}
+ .tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}
+ .tabs button{font-size:13px;padding:11px 6px}
+ .two{gap:12px}
+ .auth{margin:7vh 12px;padding:22px}
+ .row{align-items:flex-start}
+ .row strong{font-size:13px}
+ .row .muted{font-size:11px}
+}
