@@ -1,7 +1,7 @@
 'use client';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {supabase} from '../lib/supabase';
-import {monthBounds,monthlySummary,filterHistory,rowKind} from '../lib/transactions.mjs';
+import {monthBounds,monthlySummary,monthlyAnalytics,filterHistory,rowKind} from '../lib/transactions.mjs';
 
 const currencies={AED:'الدرهم الإماراتي',EGP:'الجنيه المصري'};
 const kinds={expense:'مصروف',income:'دخل',debt:'دين / التزام'};
@@ -19,6 +19,36 @@ function CurrencySummary({currency,summary}){
  return <section className="panel currency-card"><div className="currency-heading"><h2><span className="signal-dot" aria-hidden="true"/>{currencies[currency]}</h2><bdi className="tag">{currency}</bdi></div>
  <div className="balance"><Figure label="الصافي (الدخل − المصروفات)" value={summary.income-summary.expense} currency={currency} tone={summary.income>=summary.expense?'tone-good':'tone-out'}/></div>
  <div className="figures"><Figure label="الدخل" value={summary.income} currency={currency}/><Figure label="المصروفات" value={summary.expense} currency={currency}/><Figure label="الديون المسجلة" value={summary.debt} currency={currency}/></div></section>;
+}
+
+const percent=(value)=>new Intl.NumberFormat('ar-AE',{style:'percent',maximumFractionDigits:1}).format(value);
+const dayNumber=new Intl.NumberFormat('ar-AE',{useGrouping:false});
+function MetricBar({share,tone}){
+ return <span className={'analytics-track '+tone} aria-hidden="true"><span style={{width:`${Math.min(share,1)*100}%`}}/></span>;
+}
+function CurrencyAnalytics({currency,analytics}){
+ const {active,income,expense,spendingRatio,maxWeek,weeks,categories:ranked}=analytics;
+ return <section className="analytics-card" aria-labelledby={'analytics-'+currency}>
+ <div className="currency-heading"><h3 id={'analytics-'+currency}>{currencies[currency]}</h3><bdi className="tag">{currency}</bdi></div>
+ {!active?<p className="analytics-empty muted">لا دخل أو مصروفات مؤهلة للتحليل بهذه العملة هذا الشهر.</p>:<>
+ <div className="analytics-signal">
+  <div><span>نسبة المصروفات للدخل</span><strong className={spendingRatio===null?'':spendingRatio>1?'tone-out':'tone-good'}><bdi>{spendingRatio===null?'غير متاحة':percent(spendingRatio)}</bdi></strong></div>
+  {spendingRatio===null?<p className="muted">سجّل دخلاً بهذه العملة لحساب النسبة.</p>:<><MetricBar share={spendingRatio} tone={expense>income?'expense-track':'income-track'}/><p className="muted">{expense>income?'المصروفات أعلى من الدخل.':'المصروفات لا تتجاوز الدخل المسجّل.'}</p></>}
+ </div>
+ <h4>حركة الدخل والمصروفات خلال الشهر</h4>
+ <table className="analytics-table">
+  <caption className="visually-hidden">{'الدخل والمصروفات حسب أيام الشهر، '+currencies[currency]}</caption>
+  <thead><tr><th scope="col">الأيام</th><th scope="col"><span className="analytics-legend income-track"/>الدخل</th><th scope="col"><span className="analytics-legend expense-track"/>المصروفات</th></tr></thead>
+  <tbody>{weeks.map(week=><tr key={week.start}><th scope="row"><bdi>{dayNumber.format(week.start)}–{dayNumber.format(week.end)}</bdi></th>
+   <td><bdi>{money(week.income,currency)}</bdi><MetricBar share={week.income/maxWeek} tone="income-track"/></td>
+   <td><bdi>{money(week.expense,currency)}</bdi><MetricBar share={week.expense/maxWeek} tone="expense-track"/></td>
+  </tr>)}</tbody>
+ </table>
+ <h4>أكبر المصروفات حسب التصنيف</h4>
+ {!ranked.length?<p className="muted analytics-empty">لا توجد مصروفات مؤهلة للتحليل.</p>:<ul className="analytics-rank">{ranked.slice(0,4).map(({name,amount,share})=>
+  <li key={name}><div className="analytics-line"><strong>{name}</strong><span><bdi>{money(amount,currency)}</bdi> <bdi className="analytics-share">{percent(share)}</bdi></span></div><MetricBar share={share} tone="category-track"/></li>
+ )}</ul>}
+ </>}</section>;
 }
 
 export default function Home(){
@@ -77,11 +107,7 @@ export default function Home(){
  const totals=useMemo(()=>monthlySummary(items),[items]);
  const visible=useMemo(()=>filterHistory(items,filters),[items,filters]);
  const choices=useMemo(()=>Array.from(new Set(items.map(x=>x.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'ar')),[items]);
- const categoriesByCurrency=useMemo(()=>Object.fromEntries(Object.keys(currencies).map(currency=>{
-  const sums=new Map();
-  items.filter(x=>x.currency===currency&&rowKind(x)==='expense').forEach(x=>sums.set(x.category,(sums.get(x.category)||0)+Number(x.amount)));
-  return [currency,Array.from(sums).sort((a,b)=>b[1]-a[1])];
- })),[items]);
+ const analytics=useMemo(()=>monthlyAnalytics(items,month),[items,month]);
  const selectedCount=Object.values(filters).filter(Boolean).length;
  const updateFilter=(key,value)=>setFilters(q=>({...q,[key]:value}));
  const navigate=(next)=>{setTab(next);setOperation(null)};
@@ -145,8 +171,14 @@ export default function Home(){
  {operation&&<div className={'notice '+(operation.error?'notice-error':'')} role={operation.error?'alert':'status'}>{operation.text}<button className="quiet" aria-label="إغلاق التنبيه" onClick={()=>setOperation(null)}>×</button></div>}
  {tab==='overview'&&(readiness||<>
  <div className="split">{Object.keys(currencies).map(c=><CurrencySummary key={c} currency={c} summary={totals[c]}/>)}</div>
- <section className="panel insight"><div className="section-heading"><div><h2>المصروفات حسب التصنيف</h2><p className="muted">توزيع مصروفات الشهر المسجلة</p></div><button className="btn secondary" onClick={()=>navigate('history')}>عرض السجل</button></div>
- <div className="split">{Object.keys(currencies).map(c=><div key={c}><h3>{currencies[c]}</h3>{categoriesByCurrency[c].length?categoriesByCurrency[c].slice(0,5).map(([name,n])=><div className="bar-line" key={name}><div><span>{name}</span><bdi>{money(n,c)}</bdi></div><progress aria-label={name} value={n} max={totals[c].expense}/></div>):<p className="muted">لا توجد مصروفات مسجلة بهذه العملة.</p>}</div>)}</div></section>
+
+ <section className="panel insight analytics" aria-labelledby="analytics-heading"><div className="section-heading analytics-heading">
+  <div><div className="eyebrow hero-kicker"><span aria-hidden="true"/> مؤشرات الميزانية</div><h2 id="analytics-heading">تحليل الشهر</h2><p className="muted">قارن الدخل بالمصروفات واعرف أين يذهب أكبر جزء منها.</p></div>
+  <button className="btn secondary" onClick={()=>navigate('history')}>عرض السجل</button>
+ </div>
+ <div className="split analytics-grid">{Object.keys(currencies).map(currency=><CurrencyAnalytics key={currency} currency={currency} analytics={analytics[currency]}/>)}</div>
+ <p className="muted analytics-definition">التحليل يستبعد الديون والعمليات المصنّفة «تحويل». السجل والملخص أعلاه يعرضان العمليات كما سُجّلت. مقياس الرسم منفصل لكل عملة.</p>
+ </section>
  </>)}
  {tab==='history'&&(readiness||<section className="panel"><div className="section-heading"><div><h2>سجل العمليات</h2><p className="muted">{visible.length} من {items.length} عملية في الشهر</p></div><button className="btn" onClick={startForm}>إضافة عملية</button></div>
  <div className="filters"><label>العملة<select value={filters.currency} onChange={e=>updateFilter('currency',e.target.value)}><option value="">الكل</option>{Object.entries(currencies).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>
