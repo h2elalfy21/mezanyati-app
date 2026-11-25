@@ -56,3 +56,28 @@ body{background:radial-gradient(ellipse at 83% -9%,#183454 0,transparent 56%),ra
 .analytics-share{padding-inline:4px;color:var(--violet)}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 @media(max-width:650px){.analytics .analytics-grid{gap:12px}.analytics-heading{flex-wrap:wrap;gap:8px}.analytics-table{font-size:.73rem}}
+
+/* Export only this filtered ledger. Ordinary app controls are not printed. */
+.history-export{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:14px 0 9px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--field)}
+.history-export p{margin:0;font-size:.82rem}
+.history-export>div{display:flex;flex-wrap:wrap;gap:7px}
+.history-export button{font-size:.83rem;white-space:nowrap}
+.history-export button:disabled{cursor:not-allowed}
+.export-print-report{display:none}
+@media print{
+ @page{size:A4;margin:14mm}
+ body:has(.export-print-report){min-height:auto;background:#fff;color:#15253b;color-scheme:light}
+ .wrap:has(.export-print-report){display:block;width:auto;margin:0;padding:0}
+ .wrap:has(.export-print-report)>:not(.export-print-report){display:none!important}
+ .export-print-report{display:block;width:100%;font:10pt/1.55 system-ui,sans-serif;color:#15253b}
+ .export-print-report header{margin-bottom:12px;break-inside:avoid}
+ .export-print-report h1{margin:0;font-size:21pt}
+ .export-print-report p{margin:4px 0 0}
+ .export-print-report table{width:100%;border-collapse:collapse;table-layout:fixed}
+ .export-print-report thead{display:table-header-group}
+ .export-print-report tr{break-inside:avoid}
+ .export-print-report td,.export-print-report th{padding:7px 6px;border-bottom:1px solid #adb8c8;text-align:start;vertical-align:top;overflow-wrap:anywhere;white-space:pre-wrap}
+ .export-print-report th{background:#eaf0f9;border-bottom:2px solid #29394d}
+ .export-print-report th:nth-child(4){width:10%}
+ .export-print-report th:last-child{width:26%}
+}

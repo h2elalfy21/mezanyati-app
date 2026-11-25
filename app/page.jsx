@@ -1,6 +1,7 @@
 'use client';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {supabase} from '../lib/supabase';
+import {exportFields,exportHeaders,makeXlsx} from '../lib/exports.mjs';
 import {monthBounds,monthlySummary,monthlyAnalytics,filterHistory,rowKind} from '../lib/transactions.mjs';
 
 const currencies={AED:'الدرهم الإماراتي',EGP:'الجنيه المصري'};
@@ -49,6 +50,19 @@ function CurrencyAnalytics({currency,analytics}){
   <li key={name}><div className="analytics-line"><strong>{name}</strong><span><bdi>{money(amount,currency)}</bdi> <bdi className="analytics-share">{percent(share)}</bdi></span></div><MetricBar share={share} tone="category-track"/></li>
  )}</ul>}
  </>}</section>;
+}
+
+function HistoryPrintReport({month,rows,filters}){
+ const criteria=[currencies[filters.currency],kinds[filters.kind],filters.category,filters.date].filter(Boolean);
+ const number=new Intl.NumberFormat('ar-AE',{maximumFractionDigits:2});
+ return <section className="export-print-report" dir="rtl">
+  <header><h1>ميزانيتي | سجل العمليات</h1><p>{monthLabel(month)} · {rows.length} عملية</p>
+   {criteria.length>0&&<p>الفلاتر: {criteria.map((item,i)=><bdi key={i}>{i>0?' · ':''}{item}</bdi>)}</p>}
+  </header>
+  <table><thead><tr>{exportHeaders.map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
+   <tbody>{rows.map(row=><tr key={row.id}>{exportFields(row).map((cell,i)=><td key={i}><bdi>{typeof cell==='number'?number.format(cell):cell||'—'}</bdi></td>)}</tr>)}</tbody>
+  </table>
+ </section>;
 }
 
 export default function Home(){
@@ -120,6 +134,19 @@ export default function Home(){
   setMonth(value);setFilters(filterDefaults);setOperation(null);
  }
  function startForm(){setForm(freshForm(month));navigate('add')}
+ function downloadExcel(){
+  if(!visible.length)return;
+  let url;
+  try{
+   url=URL.createObjectURL(makeXlsx(visible));
+   const link=document.createElement('a');
+   link.href=url;link.download='Mezanyati-'+month+'.xlsx';
+   document.body.append(link);
+   try{link.click()}finally{link.remove()}
+  }catch{setOperation({error:true,text:'تعذّر إنشاء ملف Excel. حاول مرة أخرى.'})}
+  finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),60000)}
+ }
+
  async function auth(event){
   event.preventDefault();if(pendingAuth)return;
   setPendingAuth(true);setAuthNotice(null);
@@ -186,6 +213,11 @@ export default function Home(){
  <label>التصنيف<select value={filters.category} onChange={e=>updateFilter('category',e.target.value)}><option value="">الكل</option>{choices.map(name=><option key={name}>{name}</option>)}</select></label>
  <label>التاريخ<input type="date" value={filters.date} min={month+'-01'} max={monthBounds(month).last} onChange={e=>updateFilter('date',e.target.value)}/></label></div>
  {selectedCount>0&&<button className="quiet reset" onClick={()=>setFilters(filterDefaults)}>مسح الفلاتر</button>}
+ <div className="history-export" role="group" aria-label="تصدير العمليات">
+  <p className="muted">التصدير يشمل عمليات الشهر المطابقة للفلاتر الحالية.</p>
+  <div><button className="btn secondary" disabled={!visible.length} onClick={()=>window.print()}>تصدير PDF</button>
+  <button className="btn secondary" disabled={!visible.length} onClick={downloadExcel}>تصدير Excel</button></div>
+ </div>
  {!visible.length?<div className="state"><p>{items.length?'لا توجد عمليات تطابق الفلاتر.':'لا توجد عمليات مسجلة لهذا الشهر.'}</p></div>:<ul className="history">{visible.map(x=><li key={x.id}>
  <div className="history-main"><strong>{x.category||'بدون تصنيف'}</strong><div className="history-meta"><span className={'tag kind-'+rowKind(x)}>{kinds[rowKind(x)]||'غير مصنّف'}</span><time dateTime={x.occurred_on}>{dateLabel(x.occurred_on)}</time></div>{x.note&&<p className="muted">{x.note}</p>}</div>
  <strong className={'amount '+(rowKind(x)==='income'?'tone-good':rowKind(x)==='expense'?'tone-out':'')}><bdi>{money(Number(x.amount),x.currency)}</bdi></strong>
@@ -198,6 +230,7 @@ export default function Home(){
  <label>التصنيف<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{categories.map(x=><option key={x}>{x}</option>)}</select></label>
  <label>التاريخ<input type="date" value={form.occurred_on} onChange={e=>setForm({...form,occurred_on:e.target.value})} required/></label>
  <label>ملاحظة<input value={form.note} maxLength={300} onChange={e=>setForm({...form,note:e.target.value})} placeholder="وصف اختياري"/></label><div className="form-actions"><button className="btn" disabled={saving}>{saving?'جارٍ الحفظ…':'حفظ العملية'}</button><button className="btn secondary" type="button" disabled={saving} onClick={()=>navigate('history')}>إلغاء</button></div></form></section>}
+ {tab==='history'&&!readiness&&visible.length>0&&<HistoryPrintReport month={month} rows={visible} filters={filters}/>}
  <footer className="muted">ميزانيتي للتخطيط والمتابعة. التطبيق لا يحرّك أي أموال.</footer>
  </main>;
 }
