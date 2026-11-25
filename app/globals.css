@@ -81,3 +81,16 @@ body{background:radial-gradient(ellipse at 83% -9%,#183454 0,transparent 56%),ra
  .export-print-report th:nth-child(4){width:10%}
  .export-print-report th:last-child{width:26%}
 }
+
+.history-time-note{font-size:.8rem;margin:8px 0 12px}
+.history-day+.history-day{margin-top:16px}
+.history-day h3{margin:0;padding:6px 10px;border:1px solid #3b5274;border-radius:9px;background:#142642;color:#dfeeff;font-size:.87rem;line-height:1.6}
+.history-day .history{margin-top:5px}
+.history-clock{color:#e1ecff;font-variant-numeric:tabular-nums;font-weight:650}
+.history-clock-unknown{color:var(--muted);font-size:.73rem}
+@media print{
+ .export-print-report th:nth-child(2){width:15%}
+ .export-print-report th:nth-child(4){width:auto}
+ .export-print-report th:nth-child(5){width:10%}
+ .export-print-report th:last-child{width:21%}
+}

@@ -2,7 +2,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {supabase} from '../lib/supabase';
 import {exportFields,exportHeaders,makeXlsx} from '../lib/exports.mjs';
-import {monthBounds,monthlySummary,monthlyAnalytics,filterHistory,rowKind} from '../lib/transactions.mjs';
+import {monthBounds,monthlySummary,monthlyAnalytics,filterHistory,rowKind,chronologicalHistory,groupHistory,recordedTime} from '../lib/transactions.mjs';
 
 const currencies={AED:'الدرهم الإماراتي',EGP:'الجنيه المصري'};
 const kinds={expense:'مصروف',income:'دخل',debt:'دين / التزام'};
@@ -119,7 +119,8 @@ export default function Home(){
   return()=>{alive=false;abort.abort()};
  },[requestKey,userId,month]);
  const totals=useMemo(()=>monthlySummary(items),[items]);
- const visible=useMemo(()=>filterHistory(items,filters),[items,filters]);
+ const visible=useMemo(()=>chronologicalHistory(filterHistory(items,filters)),[items,filters]);
+ const days=useMemo(()=>groupHistory(visible),[visible]);
  const choices=useMemo(()=>Array.from(new Set(items.map(x=>x.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'ar')),[items]);
  const analytics=useMemo(()=>monthlyAnalytics(items,month),[items,month]);
  const selectedCount=Object.values(filters).filter(Boolean).length;
@@ -218,11 +219,20 @@ export default function Home(){
   <div><button className="btn secondary" disabled={!visible.length} onClick={()=>window.print()}>تصدير PDF</button>
   <button className="btn secondary" disabled={!visible.length} onClick={downloadExcel}>تصدير Excel</button></div>
  </div>
- {!visible.length?<div className="state"><p>{items.length?'لا توجد عمليات تطابق الفلاتر.':'لا توجد عمليات مسجلة لهذا الشهر.'}</p></div>:<ul className="history">{visible.map(x=><li key={x.id}>
- <div className="history-main"><strong>{x.category||'بدون تصنيف'}</strong><div className="history-meta"><span className={'tag kind-'+rowKind(x)}>{kinds[rowKind(x)]||'غير مصنّف'}</span><time dateTime={x.occurred_on}>{dateLabel(x.occurred_on)}</time></div>{x.note&&<p className="muted">{x.note}</p>}</div>
- <strong className={'amount '+(rowKind(x)==='income'?'tone-good':rowKind(x)==='expense'?'tone-out':'')}><bdi>{money(Number(x.amount),x.currency)}</bdi></strong>
- <button className="quiet trash" aria-label={'حذف عملية '+(x.category||'بدون تصنيف')} onClick={()=>remove(x.id)}>حذف</button>
- </li>)}</ul>}</section>)}
+ {!visible.length?<div className="state"><p>{items.length?'لا توجد عمليات تطابق الفلاتر.':'لا توجد عمليات مسجلة لهذا الشهر.'}</p></div>:<div className="history-days">
+ <p className="muted history-time-note">الأحدث أولًا. يظهر وقت التسجيل بتوقيت دبي لو اتسجّلت العملية في نفس يومها.</p>
+ {days.map(({day,rows})=><section className="history-day" key={day}>
+  <h3><time dateTime={day||undefined}>{day?dateLabel(day):'تاريخ غير متاح'}</time></h3>
+  <ul className="history">{rows.map(x=>{
+   const clock=recordedTime(x);
+   return <li key={x.id}>
+    <div className="history-main"><strong>{x.category||'بدون تصنيف'}</strong><div className="history-meta"><span className={'tag kind-'+rowKind(x)}>{kinds[rowKind(x)]||'غير مصنّف'}</span>{clock?<time className="history-clock" dateTime={x.created_at} aria-label={'وقت التسجيل بتوقيت دبي '+clock.label}><bdi>{clock.label}</bdi></time>:<span className="history-clock-unknown">بدون وقت</span>}</div>{x.note&&<p className="muted">{x.note}</p>}</div>
+    <strong className={'amount '+(rowKind(x)==='income'?'tone-good':rowKind(x)==='expense'?'tone-out':'')}><bdi>{money(Number(x.amount),x.currency)}</bdi></strong>
+    <button className="quiet trash" aria-label={'حذف عملية '+(x.category||'بدون تصنيف')} onClick={()=>remove(x.id)}>حذف</button>
+   </li>;
+  })}</ul>
+ </section>)}
+ </div>}</section>)}
  {tab==='add'&&<section className="panel"><div className="section-heading"><div><h2>عملية مالية جديدة</h2><p className="muted">تسجيل في الميزانية فقط، بدون تحويل أو دفع.</p></div></div>
  <form className="form" onSubmit={add}><label>نوع العملية<select value={form.kind} onChange={e=>setForm({...form,kind:e.target.value})}>{Object.entries(kinds).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>
  <label>المبلغ<input type="number" dir="ltr" inputMode="decimal" min="0.01" step="0.01" required value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})}/></label>
